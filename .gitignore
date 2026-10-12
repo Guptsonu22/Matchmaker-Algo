@@ -2,10 +2,20 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
+.vercel
+**/.vercel
+
+# Environment variables & secrets (keep .env.example)
 .env
+.env.*
 **/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
 *.log
 **/*.log
 .DS_Store
 powershell.cmd
 **/powershell.cmd
+
