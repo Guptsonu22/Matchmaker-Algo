@@ -8,7 +8,7 @@ export type FamilyType = 'joint' | 'nuclear' | 'extended';
 export type FamilyValues = 'traditional' | 'moderate' | 'liberal';
 export type Diet = 'vegetarian' | 'non_vegetarian' | 'eggetarian' | 'vegan';
 export type HabitLevel = 'no' | 'occasionally' | 'yes';
-export type VerificationStatus = 'unverified' | 'phone_verified' | 'id_submitted' | 'trust_badge';
+export type VerificationStatus = 'unverified' | 'pending' | 'phone_verified' | 'id_submitted' | 'trust_badge';
 export type PhotoVisibility = 'public' | 'selective' | 'protected';
 export type JourneyStatus = 'new' | 'active' | 'matched' | 'closed';
 
@@ -25,6 +25,10 @@ export interface IPartnerPreferences {
   diet: Diet[];
   maritalStatusAccepted: MaritalStatus[];
   flexibilityScore: number;
+  preferredCities?: string[];
+  childrenPreferenceAccepted?: string[];
+  relocationPreferenceAccepted?: string[];
+  petPreferenceAccepted?: string[];
 }
 
 export const PartnerPreferencesSchema = new Schema<IPartnerPreferences>(
@@ -45,6 +49,10 @@ export const PartnerPreferencesSchema = new Schema<IPartnerPreferences>(
     diet: [{ type: String }],
     maritalStatusAccepted: [{ type: String }],
     flexibilityScore: { type: Number, default: 0.7, min: 0, max: 1 },
+    preferredCities: [{ type: String }],
+    childrenPreferenceAccepted: [{ type: String }],
+    relocationPreferenceAccepted: [{ type: String }],
+    petPreferenceAccepted: [{ type: String }],
   },
   { _id: false }
 );
@@ -52,33 +60,46 @@ export const PartnerPreferencesSchema = new Schema<IPartnerPreferences>(
 export interface ICustomer extends Document {
   profileId: string;
   isClient: boolean;
+  isSynthetic: boolean; // Flag explicitly marking fictional/synthetic profiles
 
-  // Identity
+  // Names & Identity
+  firstName: string;
+  lastName: string;
   fullName: string;
   gender: Gender;
   dob: Date;
   maritalStatus: MaritalStatus;
   heightCm: number;
 
+  // Contact (Fictional only)
+  email: string;
+  phone: string;
+
   // Location
+  country: string;
   city: string;
   state: string;
-  country: string;
   nativePlace: string;
 
-  // Religion & Community
+  // Education & Career
+  undergraduateCollege: string;
+  degree: string;
+  education: Education;
+  educationField: string;
+  annualIncomeINR: number;
+  company: string;
+  designation: string;
+  occupation: string;
+  employer: string;
+  careerGoals?: string;
+
+  // Background, Community & Languages
   religion: Religion;
   caste: string;
   subCaste: string;
   motherTongue: string;
+  languages: string[];
   isManglik: boolean;
-
-  // Education & Career
-  education: Education;
-  educationField: string;
-  occupation: string;
-  employer: string;
-  annualIncomeINR: number;
 
   // Family
   familyType: FamilyType;
@@ -86,19 +107,28 @@ export interface ICustomer extends Document {
   fatherOccupation: string;
   motherOccupation: string;
   numberOfSiblings: number;
+  siblings: string;
 
-  // Lifestyle
+  // Life Choices & Preferences
+  childrenPreference: string;
+  relocationPreference: string;
+  petPreference: string;
+  relationshipExpectations?: string;
+
+  // Lifestyle & Habits
   diet: Diet;
   smoking: HabitLevel;
   drinking: HabitLevel;
   hobbies: string[];
+  lifestylePreferences?: string;
 
   // Astrological
   rashi: string;
   nakshatra: string;
 
-  // About
+  // About & Completeness
   selfDescription: string;
+  profileCompleteness: number; // percentage (0 - 100)
 
   // Photo
   avatarSeed: string;
@@ -108,7 +138,7 @@ export interface ICustomer extends Document {
   verificationStatus: VerificationStatus;
   journeyStatus: JourneyStatus;
 
-  // Explicit partner preferences
+  // Embedded preferences (also mirrored in separate MatchPreference collection)
   preferences: IPartnerPreferences;
 
   // Operational metadata
@@ -131,6 +161,21 @@ const CustomerSchema = new Schema<ICustomer>(
       type: Boolean,
       default: false,
       index: true,
+    },
+    isSynthetic: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
     },
     fullName: {
       type: String,
@@ -156,6 +201,21 @@ const CustomerSchema = new Schema<ICustomer>(
       type: Number,
       required: true,
     },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    country: {
+      type: String,
+      default: 'India',
+    },
     city: {
       type: String,
       required: true,
@@ -167,11 +227,49 @@ const CustomerSchema = new Schema<ICustomer>(
       required: true,
       trim: true,
     },
-    country: {
-      type: String,
-      default: 'India',
-    },
     nativePlace: {
+      type: String,
+      default: '',
+    },
+    undergraduateCollege: {
+      type: String,
+      default: '',
+    },
+    degree: {
+      type: String,
+      default: '',
+    },
+    education: {
+      type: String,
+      enum: ['HSC', 'Diploma', 'Bachelors', 'Masters', 'PhD', 'Other'],
+      required: true,
+    },
+    educationField: {
+      type: String,
+      default: '',
+    },
+    annualIncomeINR: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    company: {
+      type: String,
+      default: '',
+    },
+    designation: {
+      type: String,
+      default: '',
+    },
+    occupation: {
+      type: String,
+      required: true,
+    },
+    employer: {
+      type: String,
+      default: '',
+    },
+    careerGoals: {
       type: String,
       default: '',
     },
@@ -193,31 +291,10 @@ const CustomerSchema = new Schema<ICustomer>(
       type: String,
       required: true,
     },
+    languages: [{ type: String }],
     isManglik: {
       type: Boolean,
       default: false,
-    },
-    education: {
-      type: String,
-      enum: ['HSC', 'Diploma', 'Bachelors', 'Masters', 'PhD', 'Other'],
-      required: true,
-    },
-    educationField: {
-      type: String,
-      default: '',
-    },
-    occupation: {
-      type: String,
-      required: true,
-    },
-    employer: {
-      type: String,
-      default: '',
-    },
-    annualIncomeINR: {
-      type: Number,
-      required: true,
-      default: 0,
     },
     familyType: {
       type: String,
@@ -241,6 +318,26 @@ const CustomerSchema = new Schema<ICustomer>(
       type: Number,
       default: 0,
     },
+    siblings: {
+      type: String,
+      default: 'None',
+    },
+    childrenPreference: {
+      type: String,
+      default: 'Wants children in future',
+    },
+    relocationPreference: {
+      type: String,
+      default: 'Open to relocating within India',
+    },
+    petPreference: {
+      type: String,
+      default: 'Pet friendly',
+    },
+    relationshipExpectations: {
+      type: String,
+      default: '',
+    },
     diet: {
       type: String,
       enum: ['vegetarian', 'non_vegetarian', 'eggetarian', 'vegan'],
@@ -257,6 +354,10 @@ const CustomerSchema = new Schema<ICustomer>(
       default: 'no',
     },
     hobbies: [{ type: String }],
+    lifestylePreferences: {
+      type: String,
+      default: '',
+    },
     rashi: {
       type: String,
       default: '',
@@ -269,6 +370,12 @@ const CustomerSchema = new Schema<ICustomer>(
       type: String,
       default: '',
     },
+    profileCompleteness: {
+      type: Number,
+      default: 95,
+      min: 0,
+      max: 100,
+    },
     avatarSeed: {
       type: String,
       required: true,
@@ -280,8 +387,8 @@ const CustomerSchema = new Schema<ICustomer>(
     },
     verificationStatus: {
       type: String,
-      enum: ['unverified', 'phone_verified', 'id_submitted', 'trust_badge'],
-      default: 'phone_verified',
+      enum: ['unverified', 'pending', 'phone_verified', 'id_submitted', 'trust_badge'],
+      default: 'unverified',
     },
     journeyStatus: {
       type: String,
@@ -307,7 +414,6 @@ const CustomerSchema = new Schema<ICustomer>(
   }
 );
 
-// Compound text index for fast customer searching
 CustomerSchema.index({
   fullName: 'text',
   city: 'text',

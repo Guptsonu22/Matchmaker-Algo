@@ -51,16 +51,34 @@ npm install
 # Configure environment variables
 cp .env.example .env
 # Edit .env and supply your MONGODB_URI and JWT_SECRET
-
-# Seed demo matchmaker accounts and 120 synthetic opposite-gender profiles:
+# Seed demo matchmaker accounts and 120 deterministic fictional candidate profiles:
 npm run seed
 
 # Run in development mode:
 npm run dev
 
-# Run automated test suite:
+# Run automated test suite (including seed and schema verification):
 npm test
 ```
+
+### 4.2 Seed Data & Fictional Profile Details
+The seed script (`server/src/seed/seedCandidatesDeterministic.ts`) creates **120 unique, idempotent, and fully synthetic Indian matrimonial candidate profiles**:
+- **Adult Demographics:** Ages 21–45 (strictly adults).
+- **Gender Balance:** Exactly 60 males and 60 females.
+- **Client & Candidate Split:** 40 paying clients (20M + 20F with `isClient: true`), 80 pool candidates (`isClient: false`).
+- **Comprehensive Biodata:**
+  - `firstName`, `lastName`, `fullName`, `gender`, `dob`, `country`, `city`, `state`, `nativePlace`, `heightCm`
+  - Fictional contact: `email` (e.g., `*.profileid@fictional-demo-datecrew.in`), `phone` (`+91-98000-xxxxx`)
+  - Education & Profession: `undergraduateCollege`, `degree`, `education`, `educationField`, `annualIncomeINR`, `company`, `designation`, `occupation`
+  - Community & Culture: `religion`, `caste`, `motherTongue`, `languages`, `isManglik`
+  - Family: `familyType`, `familyValues`, `fatherOccupation`, `motherOccupation`, `numberOfSiblings`, `siblings`
+  - Personal Expectations: `childrenPreference`, `relocationPreference`, `petPreference`, `careerGoals`, `relationshipExpectations`
+  - Lifestyle: `diet`, `smoking`, `drinking`, `hobbies`, `lifestylePreferences`
+  - Astrological & Completeness: `rashi`, `nakshatra`, `selfDescription`, `profileCompleteness: 95%`
+- **Separated Partner Criteria:** Stored in the dedicated `MatchPreference` collection referencing each candidate.
+- **Synthetic Safety:** Every record is stamped with `isSynthetic: true` and `verificationStatus: "unverified"`.
+- **Idempotency:** Safe to run repeatedly; profiles are upserted by unique `profileId` without generating duplicates.
+
 
 ### 4.2 Frontend Setup (`/client`)
 ```bash
