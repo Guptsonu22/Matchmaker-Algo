@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { customersApi } from '@/api/customers';
 import { matchesApi } from '@/api/matches';
-import type { Client, MatchSuggestion, ScoreDimensions } from '@/types';
+import type { Client, MatchSuggestion, ScoreDimensions, MatchEvent } from '@/types';
 import { MatchCard } from '@/components/matches/MatchCard';
 import { SendMatchModal } from '@/components/matches/SendMatchModal';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -262,6 +262,7 @@ export function MatchSuggestionsPage() {
                 key={suggestion.candidate._id}
                 suggestion={suggestion}
                 clientId={customer?._id}
+                dispatchedEvent={dispatchedMap[suggestion.candidate._id]}
                 onSendMatch={handleOpenSendModal}
               />
             ))}

@@ -227,7 +227,16 @@ export function CustomerDetailPage() {
               onDeleteNote={handleDeleteNote}
             />
           )}
-          {activeTab === 'history' && <MatchHistoryTable history={history} />}
+          {activeTab === 'history' && (
+            <MatchHistoryTable
+              history={history}
+              onStatusUpdate={(updated) =>
+                setHistory((prev) =>
+                  prev.map((e) => (e._id === updated._id ? updated : e))
+                )
+              }
+            />
+          )}
         </div>
       </div>
     </AppShell>

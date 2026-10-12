@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MatchSuggestion, AIMatchIntroResponse } from '@/types';
+import type { MatchSuggestion, AIMatchIntroResponse, MatchEvent } from '@/types';
 import { Avatar } from '@/components/common/Avatar';
 import { VerificationBadge } from '@/components/common/Badge';
 import { ScoreBreakdown } from './ScoreBreakdown';
@@ -10,6 +10,8 @@ import {
   formatHeight,
   MARITAL_STATUS_LABEL,
   DIET_LABEL,
+  MATCH_STATUS_LABEL,
+  MATCH_STATUS_BADGE,
 } from '@/utils/formatters';
 import { getScoreColor, getScoreLabel } from '@/utils/scoreHelpers';
 import clsx from 'clsx';
@@ -17,6 +19,7 @@ import clsx from 'clsx';
 interface MatchCardProps {
   suggestion: MatchSuggestion;
   clientId?: string;
+  dispatchedEvent?: MatchEvent;
   onSendMatch: (candidate: MatchSuggestion, draft?: string) => void;
   isSending?: boolean;
 }
@@ -24,6 +27,7 @@ interface MatchCardProps {
 export function MatchCard({
   suggestion,
   clientId,
+  dispatchedEvent,
   onSendMatch,
   isSending = false,
 }: MatchCardProps) {
@@ -325,6 +329,38 @@ export function MatchCard({
             </p>
           </div>
         )}
+
+        {/* Introduction Recorded / Mock Email Queued Status Banner */}
+        {dispatchedEvent && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-600 font-bold text-sm">✓</span>
+              <div>
+                <span className="font-semibold text-emerald-950">
+                  {dispatchedEvent.isMockDelivery ? 'Mock email queued' : 'Introduction recorded'}
+                </span>
+                <span className="text-[11px] text-emerald-800 block">
+                  Dispatched {new Date(dispatchedEvent.createdAt || dispatchedEvent.sentAt).toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <span
+                className={clsx(
+                  'text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border',
+                  MATCH_STATUS_BADGE[dispatchedEvent.status] || 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                )}
+              >
+                {MATCH_STATUS_LABEL[dispatchedEvent.status] || dispatchedEvent.status}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Footer */}
@@ -338,14 +374,26 @@ export function MatchCard({
           <span>{showAiIntro ? 'Hide Intro Draft' : 'Preview AI Intro'}</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => onSendMatch(suggestion, introDraft || undefined)}
-          disabled={isSending}
-          className="btn-primary text-xs py-2 px-4 shadow-sm"
-        >
-          {isSending ? 'Sending...' : 'Send Match Proposal →'}
-        </button>
+        {dispatchedEvent ? (
+          <button
+            type="button"
+            disabled
+            className="btn-secondary text-xs py-2 px-4 opacity-80 cursor-not-allowed bg-slate-100 text-slate-600 border-slate-200 flex items-center gap-1.5"
+            title="Introduction proposal has already been dispatched to this client. Duplicate send prevented."
+          >
+            <span>✓</span>
+            <span>Proposal Dispatched</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSendMatch(suggestion, introDraft || undefined)}
+            disabled={isSending}
+            className="btn-primary text-xs py-2 px-4 shadow-sm"
+          >
+            {isSending ? 'Sending...' : 'Send Match Proposal →'}
+          </button>
+        )}
       </div>
     </div>
   );

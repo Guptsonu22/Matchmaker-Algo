@@ -224,6 +224,8 @@ export interface MatchEvent {
   deliveryReceipt?: DeliveryReceipt;
   emailLog: string;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ─── API Responses ─────────────────────────────────────────────────────────────
