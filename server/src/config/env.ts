@@ -9,5 +9,6 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
-  openaiEnabled: process.env.OPENAI_ENABLED === 'true',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  openaiEnabled: process.env.OPENAI_ENABLED === 'true' || Boolean(process.env.OPENAI_API_KEY),
 };

@@ -7,10 +7,16 @@ export const matchesApi = {
     return data;
   },
 
-  sendMatch: async (clientId: string, candidateId: string): Promise<MatchEvent> => {
+  sendMatch: async (
+    clientId: string,
+    candidateId: string,
+    options?: { customIntroduction?: string; notes?: string }
+  ): Promise<MatchEvent> => {
     const { data } = await apiClient.post<MatchEvent>('/api/matches/send', {
       clientId,
       candidateId,
+      customIntroduction: options?.customIntroduction,
+      notes: options?.notes,
     });
     return data;
   },

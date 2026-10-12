@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes.js';
 import customersRoutes from './routes/customers.routes.js';
 import matchesRoutes from './routes/matches.routes.js';
 import statsRoutes from './routes/stats.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 export function createApp() {
@@ -30,6 +31,7 @@ export function createApp() {
   app.use('/api/customers', customersRoutes);
   app.use('/api/matches', matchesRoutes);
   app.use('/api/stats', statsRoutes);
+  app.use('/api/ai', aiRoutes);
 
   // 404 handler for undefined API routes
   app.use((_req, res) => {

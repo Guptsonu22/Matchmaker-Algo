@@ -115,9 +115,14 @@ Open `http://localhost:5173` in your browser.
 
 ### Compatibility & Matching Engine
 - `GET /api/customers/:id/matches` — *(Protected)* Evaluate and rank opposite-gender candidates against client preferences using the 7-dimension scoring algorithm.
-- `POST /api/matches/send` — *(Protected)* Dispatch match proposal, trigger OpenAI introduction generation, log mock email, and store match snapshot.
+- `POST /api/matches/send` — *(Protected)* Dispatch match proposal, support custom/edited introduction drafts, log mock email, and store match snapshot.
 - `GET /api/matches/history/:clientId` — *(Protected)* Retrieve past dispatched proposals for a customer.
 - `GET /api/stats/overview` — *(Protected)* Summary statistics for operations dashboard.
+
+### AI-Assisted Match Introductions
+- `POST /api/ai/match-introduction` — *(Protected)* Generate personalized match introductions via the official OpenAI JavaScript SDK and Responses API (with curated fallback).
+  - **Inputs:** `customerId` (or `clientId`), `candidateId`, `score` (deterministic score snapshot or number), and optional `explanation`.
+  - **Behaviors:** Authenticated, rate-limited, strictly uses verified profile facts, omits private/sensitive info (no phone, email, caste, or religion), non-predictive framing of compatibility score, and graceful fallback on missing API keys, rate limits, or upstream errors.
 
 ---
 
@@ -153,4 +158,6 @@ Scored out of 100 points across 7 explainable dimensions:
    - `JWT_SECRET=<High entropy random secret string>`
    - `CLIENT_URL=https://your-frontend.vercel.app`
    - `OPENAI_API_KEY=<Optional key for custom introductions>`
+   - `OPENAI_MODEL=gpt-4o-mini` (or any currently supported model configured via environment)
    - `OPENAI_ENABLED=true` (or `false` for curated template mode)
+

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { MatchSuggestion } from '@/types';
+import type { MatchSuggestion, AIMatchIntroResponse } from '@/types';
 import { Avatar } from '@/components/common/Avatar';
 import { VerificationBadge } from '@/components/common/Badge';
 import { ScoreBreakdown } from './ScoreBreakdown';
+import { aiApi } from '@/api/ai';
 import {
   getAge,
   formatINR,
@@ -15,13 +16,25 @@ import clsx from 'clsx';
 
 interface MatchCardProps {
   suggestion: MatchSuggestion;
-  onSendMatch: (candidate: MatchSuggestion) => void;
+  clientId?: string;
+  onSendMatch: (candidate: MatchSuggestion, draft?: string) => void;
   isSending?: boolean;
 }
 
-export function MatchCard({ suggestion, onSendMatch, isSending = false }: MatchCardProps) {
-  const { candidate, score, confidence, explanation, matchedCriteria, potentialConcerns } = suggestion;
+export function MatchCard({
+  suggestion,
+  clientId,
+  onSendMatch,
+  isSending = false,
+}: MatchCardProps) {
+  const { candidate, score, confidence, explanation, matchedCriteria, potentialConcerns } =
+    suggestion;
   const [showWhyMatch, setShowWhyMatch] = useState(true);
+  const [showAiIntro, setShowAiIntro] = useState(false);
+  const [introDraft, setIntroDraft] = useState('');
+  const [isGeneratingIntro, setIsGeneratingIntro] = useState(false);
+  const [introMeta, setIntroMeta] = useState<AIMatchIntroResponse | null>(null);
+
   const age = getAge(candidate.dob);
   const color = getScoreColor(score.total);
 
@@ -38,6 +51,37 @@ export function MatchCard({ suggestion, onSendMatch, isSending = false }: MatchC
       : (confidence ?? 100) >= 60
       ? 'text-amber-700 bg-amber-50 border-amber-200'
       : 'text-rose-700 bg-rose-50 border-rose-200';
+
+  const wordCount = introDraft.trim()
+    ? introDraft.trim().split(/\s+/).filter(Boolean).length
+    : 0;
+
+  const handleFetchIntro = async () => {
+    if (!clientId) return;
+    try {
+      setIsGeneratingIntro(true);
+      const res = await aiApi.generateMatchIntroduction({
+        customerId: clientId,
+        candidateId: candidate._id,
+        score: score,
+        explanation: explanation,
+      });
+      setIntroDraft(res.introduction);
+      setIntroMeta(res);
+    } catch (err) {
+      console.error('Failed to generate match introduction:', err);
+    } finally {
+      setIsGeneratingIntro(false);
+    }
+  };
+
+  const handleToggleAiIntro = () => {
+    const nextState = !showAiIntro;
+    setShowAiIntro(nextState);
+    if (nextState && !introDraft) {
+      handleFetchIntro();
+    }
+  };
 
   return (
     <div className="card p-6 flex flex-col justify-between hover:border-gray-300 transition-all shadow-sm">
@@ -223,16 +267,80 @@ export function MatchCard({ suggestion, onSendMatch, isSending = false }: MatchC
         <div>
           <ScoreBreakdown dimensions={score.dimensions} totalScore={score.total} compact={true} />
         </div>
+
+        {/* ── AI Introduction Preview & Editable Draft in Card ── */}
+        {showAiIntro && (
+          <div className="rounded-xl border border-purple-200 bg-purple-50/30 p-3.5 space-y-2.5 text-xs transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span>✨</span>
+                <span className="font-semibold text-purple-900">
+                  AI Introduction Draft
+                </span>
+                {introMeta?.source === 'ai' && (
+                  <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-medium">
+                    OpenAI
+                  </span>
+                )}
+                {introMeta?.source === 'fallback' && (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                    Curated Template
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-purple-700 font-mono">
+                  {wordCount} words
+                </span>
+                <button
+                  type="button"
+                  onClick={handleFetchIntro}
+                  disabled={isGeneratingIntro}
+                  className="btn-ghost text-[11px] py-0.5 px-2 text-purple-800 hover:bg-purple-100 rounded flex items-center gap-1"
+                >
+                  <span className={isGeneratingIntro ? 'animate-spin' : ''}>🔄</span>
+                  <span>{isGeneratingIntro ? 'Regenerating...' : 'Regenerate'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              {isGeneratingIntro && (
+                <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                  <span className="text-xs text-purple-900 font-medium animate-pulse">
+                    Drafting personalized introduction...
+                  </span>
+                </div>
+              )}
+              <textarea
+                rows={4}
+                value={introDraft}
+                onChange={(e) => setIntroDraft(e.target.value)}
+                placeholder="Click 'Regenerate' to draft an AI-assisted introduction..."
+                className="w-full text-xs font-serif leading-relaxed p-2.5 rounded-lg border border-purple-200 bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              />
+            </div>
+            <p className="text-[10px] text-purple-700 italic">
+              Verified facts only. Editable before dispatching proposal.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Action Footer */}
-      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-[11px] text-gray-400">
-          Deterministic Compatibility Engine
-        </span>
+      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
         <button
           type="button"
-          onClick={() => onSendMatch(suggestion)}
+          onClick={handleToggleAiIntro}
+          className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 text-slate-700 hover:text-slate-900"
+        >
+          <span>✨</span>
+          <span>{showAiIntro ? 'Hide Intro Draft' : 'Preview AI Intro'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onSendMatch(suggestion, introDraft || undefined)}
           disabled={isSending}
           className="btn-primary text-xs py-2 px-4 shadow-sm"
         >

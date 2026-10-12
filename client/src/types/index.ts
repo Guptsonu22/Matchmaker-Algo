@@ -238,3 +238,22 @@ export interface CustomerQueryParams {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
 }
+
+// ─── AI Assisted Introductions ───────────────────────────────────────────────
+
+export interface AIMatchIntroRequest {
+  customerId: string;
+  candidateId: string;
+  score?: ScoreSnapshot | number;
+  explanation?: MatchExplanation | string;
+}
+
+export interface AIMatchIntroResponse {
+  success: boolean;
+  introduction: string;
+  source: 'ai' | 'fallback';
+  fallbackReason?: 'missing_api_key' | 'rate_limited' | 'timeout' | 'api_error';
+  wordCount: number;
+  modelUsed?: string;
+}
+

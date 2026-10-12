@@ -8,7 +8,7 @@ import { sendMockEmail } from '../services/email.service.js';
 
 export async function sendMatch(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { clientId, candidateId, notes } = req.body;
+    const { clientId, candidateId, notes, customIntroduction, introduction } = req.body;
 
     if (!clientId || !candidateId) {
       res.status(400).json({ message: 'Both clientId and candidateId are required.' });
@@ -33,8 +33,11 @@ export async function sendMatch(req: AuthenticatedRequest, res: Response, next: 
     // Compute deterministic snapshot
     const scoreSnapshot = computeMatchingScore(client, candidate);
 
-    // Generate personalized introduction
-    const aiIntroduction = await generateIntroduction(client, candidate, scoreSnapshot);
+    // Use edited draft if provided by matchmaker, otherwise generate personalized introduction
+    const aiIntroduction =
+      (customIntroduction && customIntroduction.trim()) ||
+      (introduction && introduction.trim()) ||
+      (await generateIntroduction(client, candidate, scoreSnapshot));
 
     // Mock email dispatch
     const emailDispatch = sendMockEmail({

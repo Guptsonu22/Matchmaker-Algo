@@ -32,6 +32,7 @@ export function MatchSuggestionsPage() {
 
   // Selected suggestion for the send modal
   const [selectedSuggestion, setSelectedSuggestion] = useState<MatchSuggestion | null>(null);
+  const [initialDraft, setInitialDraft] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Configurable presets & filters
@@ -62,16 +63,17 @@ export function MatchSuggestionsPage() {
   }, [fetchData]);
 
   // Handle open modal
-  const handleOpenSendModal = (sugg: MatchSuggestion) => {
+  const handleOpenSendModal = (sugg: MatchSuggestion, draft?: string) => {
     setSelectedSuggestion(sugg);
+    setInitialDraft(draft);
     setIsModalOpen(true);
   };
 
   // Handle confirm sending match
-  const handleConfirmSend = async () => {
+  const handleConfirmSend = async (options?: { customIntroduction?: string; notes?: string }) => {
     if (!customer || !selectedSuggestion) return;
     try {
-      await matchesApi.sendMatch(customer._id, selectedSuggestion.candidate._id);
+      await matchesApi.sendMatch(customer._id, selectedSuggestion.candidate._id, options);
       showToast(
         'success',
         'Match Proposal Dispatched',
@@ -229,6 +231,7 @@ export function MatchSuggestionsPage() {
               <MatchCard
                 key={suggestion.candidate._id}
                 suggestion={suggestion}
+                clientId={customer?._id}
                 onSendMatch={handleOpenSendModal}
               />
             ))}
@@ -239,9 +242,13 @@ export function MatchSuggestionsPage() {
         {customer && (
           <SendMatchModal
             isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              setInitialDraft(undefined);
+            }}
             client={customer}
             suggestion={selectedSuggestion}
+            initialDraft={initialDraft}
             onConfirm={handleConfirmSend}
           />
         )}
