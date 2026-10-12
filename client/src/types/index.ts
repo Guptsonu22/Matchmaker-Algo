@@ -185,6 +185,27 @@ export interface MatchSuggestion {
   };
 }
 
+export type MatchStatus =
+  | 'shortlisted'
+  | 'intro_sent'
+  | 'meeting_scheduled'
+  | 'accepted'
+  | 'rejected'
+  | 'proposed'
+  | 'viewed'
+  | 'declined';
+
+export interface DeliveryReceipt {
+  delivered: boolean;
+  isMock: boolean;
+  provider: string;
+  deliveryStatus: 'simulated_delivery' | 'delivered' | 'failed';
+  messageId: string;
+  timestamp: string;
+  summary: string;
+  error?: string;
+}
+
 export interface MatchEvent {
   _id: string;
   clientId: string;
@@ -193,9 +214,14 @@ export interface MatchEvent {
   sentBy: string;
   sentByName?: string;
   sentAt: string;
+  status: MatchStatus;
   scoreSnapshot: ScoreSnapshot;
   aiIntroduction: string;
   emailDelivered: boolean;
+  deliveryProvider?: string;
+  deliveryStatus?: string;
+  isMockDelivery?: boolean;
+  deliveryReceipt?: DeliveryReceipt;
   emailLog: string;
   notes?: string;
 }

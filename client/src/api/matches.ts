@@ -10,13 +10,26 @@ export const matchesApi = {
   sendMatch: async (
     clientId: string,
     candidateId: string,
-    options?: { customIntroduction?: string; notes?: string }
+    options?: { customIntroduction?: string; notes?: string; consentApproved?: boolean }
   ): Promise<MatchEvent> => {
     const { data } = await apiClient.post<MatchEvent>('/api/matches/send', {
       clientId,
       candidateId,
       customIntroduction: options?.customIntroduction,
       notes: options?.notes,
+      consentApproved: options?.consentApproved,
+    });
+    return data;
+  },
+
+  updateStatus: async (
+    eventId: string,
+    status: MatchEvent['status'],
+    notes?: string
+  ): Promise<MatchEvent> => {
+    const { data } = await apiClient.patch<MatchEvent>(`/api/matches/${eventId}/status`, {
+      status,
+      notes,
     });
     return data;
   },

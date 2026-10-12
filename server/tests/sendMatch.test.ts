@@ -197,7 +197,9 @@ describe('Send Match Workflow & Delivery Adapter Tests', () => {
       expect(res.status).toBe(201);
       expect(res.body._id).toBeDefined();
       expect(res.body.clientId).toBe(clientCustomer._id.toString());
-      expect(res.body.candidateId).toBe(candidateCustomer1._id.toString());
+      expect((res.body.candidateId?._id || res.body.candidateId).toString()).toBe(
+        candidateCustomer1._id.toString()
+      );
       expect(res.body.status).toBe('intro_sent');
       expect(res.body.aiIntroduction).toBe(customIntro);
       expect(res.body.sentByName).toBe('Senior Matchmaker Aarti');
