@@ -1,8 +1,28 @@
+import {
+  getDeliveryAdapter,
+  DeliveryPayload,
+  DeliveryReceipt,
+  IDeliveryAdapter,
+  MockDeliveryAdapter,
+  setDeliveryAdapter,
+} from './delivery/delivery.adapter.js';
+
+export {
+  DeliveryPayload,
+  DeliveryReceipt,
+  IDeliveryAdapter,
+  MockDeliveryAdapter,
+  getDeliveryAdapter,
+  setDeliveryAdapter,
+};
+
 export interface IMockEmailPayload {
   to: string;
   recipientName: string;
   subject: string;
   body: string;
+  clientId?: string;
+  candidateId?: string;
 }
 
 export function sendMockEmail(payload: IMockEmailPayload): {
@@ -11,27 +31,20 @@ export function sendMockEmail(payload: IMockEmailPayload): {
   loggedAt: string;
   content: string;
 } {
-  const messageId = `mock_mail_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  const loggedAt = new Date().toISOString();
-
-  // Log clearly in safe format
-  const logSummary = `[Mock Email Adapter] [${loggedAt}] [ID: ${messageId}]
-To: ${payload.recipientName} <${payload.to}>
-Subject: ${payload.subject}
-Message Body:
---------------------------------------------------
-${payload.body}
---------------------------------------------------`;
-
-  // Output to console in non-test environments
-  if (process.env.NODE_ENV !== 'test') {
-    console.log(logSummary);
-  }
+  const adapter = getDeliveryAdapter();
+  const receipt = adapter.sendMatchIntroduction({
+    to: payload.to,
+    recipientName: payload.recipientName,
+    subject: payload.subject,
+    body: payload.body,
+    clientId: payload.clientId || 'unknown_client',
+    candidateId: payload.candidateId || 'unknown_candidate',
+  });
 
   return {
-    delivered: true,
-    messageId,
-    loggedAt,
-    content: logSummary,
+    delivered: (receipt as DeliveryReceipt).delivered,
+    messageId: (receipt as DeliveryReceipt).messageId,
+    loggedAt: (receipt as DeliveryReceipt).timestamp.toISOString(),
+    content: (receipt as DeliveryReceipt).summary,
   };
 }

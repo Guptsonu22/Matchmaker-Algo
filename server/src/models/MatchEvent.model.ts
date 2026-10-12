@@ -15,17 +15,30 @@ export interface IScoreSnapshot {
   dimensions: IScoreDimensions;
 }
 
+export type MatchStatus =
+  | 'shortlisted'
+  | 'intro_sent'
+  | 'meeting_scheduled'
+  | 'accepted'
+  | 'rejected'
+  | 'proposed'
+  | 'viewed'
+  | 'declined';
+
 export interface IMatchEvent extends Document {
   clientId: mongoose.Types.ObjectId;
   candidateId: mongoose.Types.ObjectId;
   sentBy: mongoose.Types.ObjectId;
   sentByName: string;
   sentAt: Date;
-  status: 'proposed' | 'accepted' | 'declined' | 'viewed';
+  status: MatchStatus;
   scoreSnapshot: IScoreSnapshot;
   aiIntroduction: string;
   emailDelivered: boolean;
   emailLog: string;
+  deliveryProvider?: string;
+  deliveryStatus?: string;
+  isMockDelivery?: boolean;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -82,8 +95,18 @@ const MatchEventSchema = new Schema<IMatchEvent>(
     },
     status: {
       type: String,
-      enum: ['proposed', 'accepted', 'declined', 'viewed'],
-      default: 'proposed',
+      enum: [
+        'shortlisted',
+        'intro_sent',
+        'meeting_scheduled',
+        'accepted',
+        'rejected',
+        'proposed',
+        'viewed',
+        'declined',
+      ],
+      default: 'intro_sent',
+      index: true,
     },
     scoreSnapshot: {
       type: ScoreSnapshotSchema,
@@ -94,6 +117,18 @@ const MatchEventSchema = new Schema<IMatchEvent>(
       required: true,
     },
     emailDelivered: {
+      type: Boolean,
+      default: true,
+    },
+    deliveryProvider: {
+      type: String,
+      default: 'mock_delivery_adapter',
+    },
+    deliveryStatus: {
+      type: String,
+      default: 'simulated_delivery',
+    },
+    isMockDelivery: {
       type: Boolean,
       default: true,
     },
@@ -110,5 +145,7 @@ const MatchEventSchema = new Schema<IMatchEvent>(
     timestamps: true,
   }
 );
+
+MatchEventSchema.index({ clientId: 1, candidateId: 1 });
 
 export const MatchEvent = mongoose.model<IMatchEvent>('MatchEvent', MatchEventSchema);

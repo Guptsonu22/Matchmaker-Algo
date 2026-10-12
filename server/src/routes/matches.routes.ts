@@ -5,6 +5,7 @@ import {
   getClientMatchHistory,
   getMatchEventById,
   getAllMatchesHistory,
+  updateMatchStatus,
 } from '../controllers/matches.controller.js';
 import { getCustomerMatchSuggestions } from '../controllers/customers.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -26,6 +27,10 @@ router.post('/', sendMatch);
 
 // POST /api/matches/:id/send
 router.post('/:id/send', validateObjectId('id'), sendMatchByParam);
+
+// PATCH /api/matches/:id/status & PATCH /api/matches/history/:id/status
+router.patch('/:id/status', validateObjectId('id'), updateMatchStatus);
+router.patch('/history/:id/status', validateObjectId('id'), updateMatchStatus);
 
 // GET /api/matches/history/:clientId
 router.get('/history/:clientId', validateObjectId('clientId'), getClientMatchHistory);
