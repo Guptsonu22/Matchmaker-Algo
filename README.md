@@ -139,30 +139,95 @@ Scored out of 100 points across 7 explainable dimensions:
 
 ---
 
-## 7. Deployment Instructions
+## 7. Architecture & System Flow
 
-### Frontend (Vercel)
-1. Push repository to GitHub.
-2. Import project into Vercel and set Root Directory to `client`.
-3. Set environment variable: `VITE_API_URL=https://your-render-backend.onrender.com`.
-4. Deploy.
+```mermaid
+graph TD
+    User([Matchmaker / Operator]) -->|HTTPS| Frontend[Vercel: React 18 / Vite SPA]
+    Frontend -->|JWT Auth Requests| Backend[Render: Node.js / Express API]
+    
+    subgraph Backend Core
+        Backend -->|Query / Upsert| DB[(MongoDB Atlas)]
+        Backend -->|Deterministic 7-Dimension Engine| Matchmaker[Compatibility Engine]
+        Backend -->|OpenAI Responses API| OpenAI[OpenAI: gpt-4o-mini]
+        Backend -->|Simulated Delivery Receipt| DeliveryAdapter[Mock Delivery Adapter]
+    end
+    
+    DeliveryAdapter -.->|Audit Event Logged| DB
+    OpenAI -.->|Fallback to Curated Template on 429/Timeout| Backend
+```
 
-### Backend (Render)
-1. Create a **Web Service** on Render pointing to your GitHub repository.
-2. Set Root Directory to `server`.
-3. Build Command: `npm install && npm run build`
-4. Start Command: `npm start`
-5. Set environment variables:
-   - `NODE_ENV=production`
-   - `PORT=4000`
-   - `MONGODB_URI=<Your MongoDB Atlas connection string>`
-   - `JWT_SECRET=<High entropy random secret string>`
-   - `CLIENT_URL=https://your-frontend.vercel.app`
-   - `OPENAI_API_KEY=<Optional key for custom introductions>`
-   - `OPENAI_MODEL=gpt-4o-mini` (or any currently supported model configured via environment)
-   - `OPENAI_ENABLED=true` (or `false` for curated template mode)
+---
 
-### 7.1 Pre-Deployment Verification Checklist & Commands
+## 8. Live Deployment Instructions
+
+### Target Stack
+- **Database:** MongoDB Atlas (M0 Free Tier or higher)
+- **Backend API:** Render (Web Service or Blueprint)
+- **Frontend SPA:** Vercel (Vite Framework Preset)
+
+### Step 1: MongoDB Atlas Database Setup
+1. Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
+2. Under **Database Access**, create a database user (e.g., `date_crew_admin`) with password.
+3. Under **Network Access**, add IP Access `0.0.0.0/0` (Allow Access from Anywhere) to permit connections from Render's dynamic IP ranges.
+4. Copy the connection string (e.g., `mongodb+srv://date_crew_admin:<password>@cluster0.abcde.mongodb.net/date_crew_db?retryWrites=true&w=majority`).
+5. Run the seed script locally pointing to Atlas (or run it via Render shell):
+   ```bash
+   cd server
+   MONGODB_URI="mongodb+srv://date_crew_admin:<password>@cluster0.abcde.mongodb.net/date_crew_db?retryWrites=true&w=majority" npm run seed
+   ```
+
+### Step 2: Backend Deployment on Render
+1. Push your repository to GitHub:
+   ```bash
+   git push origin main
+   ```
+2. Log in to [Render](https://dashboard.render.com).
+3. Click **New +** → **Blueprint** (or **Web Service**).
+   - If using **Blueprint**, select your repository and Render will automatically detect [`render.yaml`](./render.yaml).
+   - If using **Web Service** manually:
+     - **Name:** `date-crew-server`
+     - **Root Directory:** `server`
+     - **Environment:** Node
+     - **Build Command:** `npm install && npm run build`
+     - **Start Command:** `npm start`
+     - **Health Check Path:** `/health`
+4. Configure **Environment Variables** in Render Dashboard:
+   - `NODE_ENV`: `production`
+   - `PORT`: `10000` (Render default)
+   - `MONGODB_URI`: `mongodb+srv://date_crew_admin:<password>@cluster0.abcde.mongodb.net/date_crew_db?retryWrites=true&w=majority`
+   - `JWT_SECRET`: `<Generate a random 32+ character string>`
+   - `JWT_EXPIRES_IN`: `7d`
+   - `CLIENT_ORIGIN`: `https://your-date-crew-app.vercel.app` *(Can update after deploying Vercel frontend; wildcards like `https://*.vercel.app` are supported)*
+   - `EMAIL_MOCK_MODE`: `true`
+   - `DELIVERY_ADAPTER`: `mock`
+   - `OPENAI_API_KEY`: `<Your OpenAI API Key>` *(Optional; if omitted, curated templates are used)*
+   - `OPENAI_MODEL`: `gpt-4o-mini`
+   - `OPENAI_ENABLED`: `false` *(Set to `true` when API key is supplied)*
+5. Trigger manual deploy and verify health by visiting:
+   ```
+   https://your-date-crew-server.onrender.com/health
+   ```
+   It should return: `{"status":"ok","database":"connected",...}`.
+
+### Step 3: Frontend Deployment on Vercel
+1. Log in to [Vercel](https://vercel.com).
+2. Click **Add New...** → **Project** and select `Guptsonu22/Matchmaker-Algo`.
+3. Configure project settings:
+   - **Framework Preset:** Vite
+   - **Root Directory:** Click `Edit` and select `client`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+4. Set **Environment Variables** in Vercel:
+   - `VITE_API_BASE_URL`: `https://your-date-crew-server.onrender.com`
+   - `VITE_API_URL`: `https://your-date-crew-server.onrender.com`
+5. Click **Deploy**. Vercel will build the SPA and use [`client/vercel.json`](./client/vercel.json) to handle route rewrites.
+6. Once deployed, copy your live Vercel domain (e.g. `https://matchmaker-algo.vercel.app`) and update `CLIENT_ORIGIN` in Render's environment settings.
+
+---
+
+## 9. Verification & Pre-Deployment Commands
+
 Run these commands locally prior to pushing or deploying:
 ```bash
 # 1. Backend verification (type check, build, seed, and automated tests)
@@ -176,4 +241,13 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+---
+
+## 10. Operational Limitations & Architecture Notes
+
+1. **Cold Starts on Render Free Tier:** Render free tier web services spin down after 15 minutes of inactivity and take ~30–50 seconds to wake up on the first request. The health check (`/health`) can be pinged by an external monitor (like UptimeRobot) to keep it warm.
+2. **Mock Delivery Adapter:** The system operates in simulated delivery mode (`EMAIL_MOCK_MODE=true`). No real customer emails are sent; instead, mock delivery receipts with unique message IDs and timestamps are recorded in the system audit log.
+3. **OpenAI Graceful Degradation:** When `OPENAI_API_KEY` is not provided or upstream rate limits are encountered, the system falls back to curated matrimonial introductions without failing the request.
+
 
