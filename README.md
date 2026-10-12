@@ -115,8 +115,9 @@ Open `http://localhost:5173` in your browser.
 
 ### Compatibility & Matching Engine
 - `GET /api/customers/:id/matches` — *(Protected)* Evaluate and rank opposite-gender candidates against client preferences using the 7-dimension scoring algorithm.
-- `POST /api/matches/send` — *(Protected)* Dispatch match proposal, support custom/edited introduction drafts, log mock email, and store match snapshot.
+- `POST /api/matches/send` — *(Protected)* Dispatch match proposal with mandatory consent checkpoint, custom introduction support, mock delivery recording, and duplicate prevention.
 - `GET /api/matches/history/:clientId` — *(Protected)* Retrieve past dispatched proposals for a customer.
+- `PATCH /api/matches/:id/status` — *(Protected)* Update proposal lifecycle status (`shortlisted`, `intro_sent`, `meeting_scheduled`, `accepted`, `rejected`).
 - `GET /api/stats/overview` — *(Protected)* Summary statistics for operations dashboard.
 
 ### AI-Assisted Match Introductions
@@ -160,4 +161,19 @@ Scored out of 100 points across 7 explainable dimensions:
    - `OPENAI_API_KEY=<Optional key for custom introductions>`
    - `OPENAI_MODEL=gpt-4o-mini` (or any currently supported model configured via environment)
    - `OPENAI_ENABLED=true` (or `false` for curated template mode)
+
+### 7.1 Pre-Deployment Verification Checklist & Commands
+Run these commands locally prior to pushing or deploying:
+```bash
+# 1. Backend verification (type check, build, seed, and automated tests)
+cd server
+npm run build
+npm test
+
+# 2. Frontend verification (type check, lint, and production bundle build)
+cd ../client
+npm run typecheck
+npm run lint
+npm run build
+```
 
