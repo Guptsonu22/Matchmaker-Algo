@@ -27,6 +27,7 @@ export function MatchSuggestionsPage() {
 
   const [customer, setCustomer] = useState<Client | null>(null);
   const [suggestions, setSuggestions] = useState<MatchSuggestion[]>([]);
+  const [clientHistory, setClientHistory] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
 
@@ -45,12 +46,14 @@ export function MatchSuggestionsPage() {
     try {
       setLoading(true);
       setError(null);
-      const [cust, sugg] = await Promise.all([
+      const [cust, sugg, hist] = await Promise.all([
         customersApi.getById(id),
         matchesApi.getSuggestions(id, { preset: selectedPreset }),
+        matchesApi.getHistory(id),
       ]);
       setCustomer(cust);
       setSuggestions(sugg);
+      setClientHistory(hist);
     } catch (err) {
       setError(err);
     } finally {
@@ -62,6 +65,24 @@ export function MatchSuggestionsPage() {
     fetchData();
   }, [fetchData]);
 
+  // Lookup map of candidate IDs already sent
+  const dispatchedMap = useMemo(() => {
+    const map: Record<string, MatchEvent> = {};
+    for (const event of clientHistory) {
+      const candId =
+        typeof event.candidateId === 'object' && event.candidateId
+          ? (event.candidateId as any)._id
+          : event.candidateId;
+      if (candId) {
+        map[candId.toString()] = event;
+      }
+      if (event.candidate?._id) {
+        map[event.candidate._id.toString()] = event;
+      }
+    }
+    return map;
+  }, [clientHistory]);
+
   // Handle open modal
   const handleOpenSendModal = (sugg: MatchSuggestion, draft?: string) => {
     setSelectedSuggestion(sugg);
@@ -70,17 +91,26 @@ export function MatchSuggestionsPage() {
   };
 
   // Handle confirm sending match
-  const handleConfirmSend = async (options?: { customIntroduction?: string; notes?: string }) => {
+  const handleConfirmSend = async (options?: {
+    customIntroduction?: string;
+    notes?: string;
+    consentApproved?: boolean;
+  }) => {
     if (!customer || !selectedSuggestion) return;
     try {
-      await matchesApi.sendMatch(customer._id, selectedSuggestion.candidate._id, options);
+      const matchEvent = await matchesApi.sendMatch(
+        customer._id,
+        selectedSuggestion.candidate._id,
+        options
+      );
       showToast(
         'success',
-        'Match Proposal Dispatched',
-        `Personalized introduction and proposal recorded for ${selectedSuggestion.candidate.fullName}.`
+        'Introduction Recorded & Mock Email Queued',
+        `Simulated proposal delivery dispatched for ${selectedSuggestion.candidate.fullName}.`
       );
-      // Refresh suggestions to reflect any state changes
+      // Refresh suggestions and history
       fetchData();
+      return matchEvent;
     } catch (err) {
       showToast('error', 'Failed to Send Match', 'Please check server logs and retry.');
       throw err;
