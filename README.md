@@ -25,7 +25,18 @@
 
 ---
 
-## 3. Demo Credentials
+## 3. Live Deployment & Demo Credentials
+
+### Live Production Services
+
+| Service | Live URL | Provider | Status |
+|---|---|---|---|
+| **Frontend Application** | [https://matchmaker-algo.vercel.app](https://matchmaker-algo.vercel.app) | Vercel | Active |
+| **Backend API** | [https://matchmaker-algo-n65x.onrender.com](https://matchmaker-algo-n65x.onrender.com) | Render | Active |
+| **Backend Health Probe** | [https://matchmaker-algo-n65x.onrender.com/health](https://matchmaker-algo-n65x.onrender.com/health) | Render | Active |
+| **Database** | MongoDB Atlas (M0 Cluster) | MongoDB Atlas | Connected |
+
+### Demo Credentials
 
 | Role | Email | Password |
 |---|---|---|
