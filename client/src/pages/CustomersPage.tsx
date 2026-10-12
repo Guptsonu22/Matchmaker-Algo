@@ -77,7 +77,7 @@ export function CustomersPage() {
         />
 
         {/* Error handling */}
-        {error && <ErrorMessage error={error} onRetry={fetchCustomers} />}
+        {error ? <ErrorMessage error={error} onRetry={fetchCustomers} /> : null}
 
         {/* Table / Skeleton / Empty state */}
         {loading ? (

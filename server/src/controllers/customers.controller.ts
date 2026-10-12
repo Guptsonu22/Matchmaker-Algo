@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { Customer } from '../models/Customer.model.js';
 import { MatchmakerNote } from '../models/MatchmakerNote.model.js';
+import { MatchEvent } from '../models/MatchEvent.model.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { computeMatchingScore } from '../services/matching.service.js';
+import { matchCandidates } from '../services/matchmaking/index.js';
 
 export async function listCustomers(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -241,6 +243,7 @@ export async function deleteCustomerNote(req: Request, res: Response, next: Next
 export async function getCustomerMatchSuggestions(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { id } = req.params;
+    const { preset, minScore, limit } = req.query;
     const client = await Customer.findById(id);
 
     if (!client) {
@@ -248,32 +251,55 @@ export async function getCustomerMatchSuggestions(req: Request, res: Response, n
       return;
     }
 
-    // Find all opposite-gender profiles (excluding self)
-    const oppositeGender = client.gender === 'male' ? 'female' : 'male';
+    // Exclude candidates who have already received a proposal or been declined
+    const existingMatches = await MatchEvent.find({ clientId: client._id }).select('candidateId').lean();
+    const rejectedOrSentIds = existingMatches.map((m) => m.candidateId.toString());
+
+    // Fetch potential candidates excluding self
     const candidatePool = await Customer.find({
       _id: { $ne: client._id },
-      gender: oppositeGender,
     }).lean();
 
-    // Compute compatibility scores
-    const scoredSuggestions = candidatePool.map((candidate) => {
-      const score = computeMatchingScore(client, candidate as any);
-      return {
-        candidate,
-        score,
-      };
-    });
+    const clientObj = client.toObject ? client.toObject() : client;
+    const limitNum = typeof limit === 'string' ? Math.max(1, parseInt(limit, 10)) : 15;
+    const minScoreNum = typeof minScore === 'string' ? parseFloat(minScore) : undefined;
 
-    // Sort by total score descending; use profileId for deterministic tiebreaking
-    scoredSuggestions.sort((a, b) => {
-      if (b.score.total !== a.score.total) {
-        return b.score.total - a.score.total;
+    // Run dedicated pure matchmaking algorithm
+    const matchResults = matchCandidates(
+      clientObj as any,
+      (clientObj.preferences || {}) as any,
+      candidatePool as any[],
+      {
+        presetName: typeof preset === 'string' ? preset : undefined,
+        minScore: minScoreNum,
+        rejectedCandidateIds: rejectedOrSentIds,
+        limit: limitNum,
       }
-      return a.candidate.profileId.localeCompare(b.candidate.profileId);
-    });
+    );
 
-    // Return top 15 matches
-    res.status(200).json(scoredSuggestions.slice(0, 15));
+    // Map output to supply full explainability and backward-compatible score object
+    const formattedSuggestions = matchResults.map((result) => ({
+      candidate: result.candidate,
+      score: {
+        total: result.score,
+        dimensions: {
+          ageCompatibility: result.dimensions.mutualAge?.score ?? 0,
+          locationMatch: result.dimensions.relocation?.score ?? 0,
+          educationAlignment: result.dimensions.education?.score ?? 0,
+          incomeAlignment: result.dimensions.income?.score ?? (result.dimensions.career?.score ? result.dimensions.career.score * 0.5 : 0),
+          lifestyleHarmony: result.dimensions.lifestyle?.score ?? 0,
+          culturalFit: result.dimensions.religion?.score ?? Math.round((result.dimensions.lifestyle?.score ?? 0) * 0.8),
+          preferenceReciprocity: result.dimensions.mutualAge?.score ?? 0,
+        },
+      },
+      confidence: result.confidence,
+      explanation: result.explanation,
+      matchedCriteria: result.matchedCriteria,
+      potentialConcerns: result.potentialConcerns,
+      matchDimensions: result.dimensions,
+    }));
+
+    res.status(200).json(formattedSuggestions);
   } catch (err) {
     next(err);
   }

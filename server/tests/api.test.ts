@@ -45,7 +45,11 @@ beforeAll(async () => {
   clientCustomer = await Customer.create({
     profileId: 'DC-TEST-001',
     isClient: true,
+    firstName: 'Meera',
+    lastName: 'Client',
     fullName: 'Meera Test Client',
+    email: 'meera.test@datecrew.in',
+    phone: '+91-98000-00001',
     gender: 'female',
     dob: new Date('1996-05-15'),
     maritalStatus: 'never_married',
@@ -88,7 +92,11 @@ beforeAll(async () => {
   candidateCustomer = await Customer.create({
     profileId: 'DC-TEST-002',
     isClient: false,
+    firstName: 'Rohan',
+    lastName: 'Candidate',
     fullName: 'Rohan Test Candidate',
+    email: 'rohan.test@datecrew.in',
+    phone: '+91-98000-00002',
     gender: 'male',
     dob: new Date('1994-08-20'),
     maritalStatus: 'never_married',

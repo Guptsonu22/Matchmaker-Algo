@@ -1,4 +1,3 @@
-import { differenceInYears, format, parseISO } from 'date-fns';
 import type {
   Diet,
   Education,
@@ -14,16 +13,24 @@ import type {
 
 // ─── Date / Age ───────────────────────────────────────────────────────────────
 
-export function getAge(dob: string): number {
-  return differenceInYears(new Date(), parseISO(dob));
+export function getAge(dob: string | Date): number {
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return 0;
+  const diffMs = Date.now() - birth.getTime();
+  const ageDate = new Date(diffMs);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
 }
 
-export function formatDate(iso: string, fmt = 'dd MMM yyyy'): string {
-  return format(parseISO(iso), fmt);
+export function formatDate(iso: string | Date, _fmt = 'dd MMM yyyy'): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export function formatDateTime(iso: string): string {
-  return format(parseISO(iso), 'dd MMM yyyy, h:mm a');
+export function formatDateTime(iso: string | Date): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
 }
 
 // ─── Currency ─────────────────────────────────────────────────────────────────

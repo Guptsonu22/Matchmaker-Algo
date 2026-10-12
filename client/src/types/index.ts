@@ -135,8 +135,6 @@ export interface MatcherNote {
   updatedAt: string;
 }
 
-// ─── Match ────────────────────────────────────────────────────────────────────
-
 export interface ScoreDimensions {
   ageCompatibility: number;
   locationMatch: number;
@@ -145,6 +143,7 @@ export interface ScoreDimensions {
   lifestyleHarmony: number;
   culturalFit: number;
   preferenceReciprocity: number;
+  [key: string]: number;
 }
 
 export interface ScoreSnapshot {
@@ -152,9 +151,38 @@ export interface ScoreSnapshot {
   dimensions: ScoreDimensions;
 }
 
+export interface DimensionDetail {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  detail: string;
+}
+
+export interface MatchExplanation {
+  summary: string;
+  positiveSignals: string[];
+  mismatches: string[];
+  missingInformation: string[];
+}
+
 export interface MatchSuggestion {
   candidate: Candidate;
   score: ScoreSnapshot;
+  confidence?: number;
+  explanation?: MatchExplanation;
+  matchedCriteria?: string[];
+  potentialConcerns?: string[];
+  matchDimensions?: {
+    mutualAge?: DimensionDetail;
+    children?: DimensionDetail;
+    relocation?: DimensionDetail;
+    career?: DimensionDetail;
+    education?: DimensionDetail;
+    lifestyle?: DimensionDetail;
+    height?: DimensionDetail;
+    income?: DimensionDetail;
+    [key: string]: DimensionDetail | undefined;
+  };
 }
 
 export interface MatchEvent {

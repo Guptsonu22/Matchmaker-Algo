@@ -12,6 +12,14 @@ import { SkeletonCard } from '@/components/common/Skeleton';
 import { useToast } from '@/components/common/Toast';
 import { DIMENSION_LABELS } from '@/utils/scoreHelpers';
 
+const PRESET_OPTIONS = [
+  { id: 'balanced', label: 'Egalitarian / Balanced Harmony (Default)' },
+  { id: 'careerFirst', label: 'Career & Professional Focus' },
+  { id: 'familyAndLifestyle', label: 'Family Planning & Shared Values' },
+  { id: 'traditionalGroomDemo', label: 'Traditional Groom Search Preset (Demo)' },
+  { id: 'traditionalBrideDemo', label: 'Traditional Bride Search Preset (Demo)' },
+];
+
 export function MatchSuggestionsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -26,7 +34,8 @@ export function MatchSuggestionsPage() {
   const [selectedSuggestion, setSelectedSuggestion] = useState<MatchSuggestion | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sort and filter dimension control
+  // Configurable presets & filters
+  const [selectedPreset, setSelectedPreset] = useState<string>('balanced');
   const [sortBy, setSortBy] = useState<string>('total');
   const [minScore, setMinScore] = useState<number>(50);
 
@@ -37,7 +46,7 @@ export function MatchSuggestionsPage() {
       setError(null);
       const [cust, sugg] = await Promise.all([
         customersApi.getById(id),
-        matchesApi.getSuggestions(id),
+        matchesApi.getSuggestions(id, { preset: selectedPreset }),
       ]);
       setCustomer(cust);
       setSuggestions(sugg);
@@ -46,7 +55,7 @@ export function MatchSuggestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, selectedPreset]);
 
   useEffect(() => {
     fetchData();
@@ -84,6 +93,9 @@ export function MatchSuggestionsPage() {
         if (sortBy === 'total') {
           return b.score.total - a.score.total;
         }
+        if (sortBy === 'confidence') {
+          return (b.confidence ?? 100) - (a.confidence ?? 100);
+        }
         const dimKey = sortBy as keyof ScoreDimensions;
         const valA = a.score.dimensions[dimKey] || 0;
         const valB = b.score.dimensions[dimKey] || 0;
@@ -96,7 +108,7 @@ export function MatchSuggestionsPage() {
       title={customer ? `Match Recommendations for ${customer.fullName}` : 'Match Recommendations'}
       subtitle={
         customer
-          ? `Searching opposite-gender candidates against ${customer.gender === 'male' ? "bride" : "groom"} preferences.`
+          ? `Evaluating candidate pool against ${customer.fullName}'s explicit partner preferences and active presets.`
           : 'Loading suggestions...'
       }
     >
@@ -115,20 +127,40 @@ export function MatchSuggestionsPage() {
         </div>
 
         {/* Filters and Re-ranking Toolbar */}
-        <div className="card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white">
-          <div className="flex flex-wrap items-center gap-4 text-xs w-full sm:w-auto">
+        <div className="card p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white">
+          <div className="flex flex-wrap items-center gap-4 text-xs w-full md:w-auto">
+            {/* Preference Presets Selector */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="preset-select" className="text-gray-600 font-medium whitespace-nowrap">
+                Preference Preset:
+              </label>
+              <select
+                id="preset-select"
+                className="input-base text-xs py-1.5 px-3 font-medium bg-slate-50 border-slate-300"
+                value={selectedPreset}
+                onChange={(e) => setSelectedPreset(e.target.value)}
+              >
+                {PRESET_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Sort by dimension */}
             <div className="flex items-center gap-2">
-              <label htmlFor="sort-by" className="text-gray-500 font-medium">
-                Prioritize Dimension:
+              <label htmlFor="sort-by" className="text-gray-500 font-medium whitespace-nowrap">
+                Sort Dimension:
               </label>
               <select
                 id="sort-by"
-                className="input-base text-xs py-1.5 px-3 w-44"
+                className="input-base text-xs py-1.5 px-3 w-40"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
                 <option value="total">Overall Match Score</option>
+                <option value="confidence">Data Confidence</option>
                 {Object.entries(DIMENSION_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>
                     {label}
@@ -139,8 +171,8 @@ export function MatchSuggestionsPage() {
 
             {/* Min compatibility threshold */}
             <div className="flex items-center gap-2">
-              <label htmlFor="min-score" className="text-gray-500 font-medium">
-                Min Fit:
+              <label htmlFor="min-score" className="text-gray-500 font-medium whitespace-nowrap">
+                Min Score:
               </label>
               <select
                 id="min-score"
@@ -151,18 +183,18 @@ export function MatchSuggestionsPage() {
                 <option value={0}>All Scores</option>
                 <option value={50}>50% and above</option>
                 <option value={65}>65% and above</option>
-                <option value={80}>80% (High fit only)</option>
+                <option value={80}>80% (High fit)</option>
               </select>
             </div>
           </div>
 
-          <span className="text-xs text-gray-400">
-            Showing {filteredSuggestions.length} candidates
+          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+            Showing <strong className="text-gray-900">{filteredSuggestions.length}</strong> matching candidates
           </span>
         </div>
 
         {/* Error State */}
-        {error && <ErrorMessage error={error} onRetry={fetchData} />}
+        {error ? <ErrorMessage error={error} onRetry={fetchData} /> : null}
 
         {/* Suggestions Grid */}
         {loading ? (
@@ -176,16 +208,17 @@ export function MatchSuggestionsPage() {
           <div className="card">
             <EmptyState
               title="No Suitable Matches Found"
-              description="No opposite-gender profiles met your current compatibility threshold. Try lowering the minimum match filter or broadening customer preferences."
+              description="No candidates met your current compatibility threshold or active hard constraints. Try adjusting the minimum score or exploring other preference presets."
               action={
                 <button
                   onClick={() => {
                     setMinScore(0);
                     setSortBy('total');
+                    setSelectedPreset('balanced');
                   }}
                   className="btn-secondary text-xs"
                 >
-                  Reset Filter Threshold
+                  Reset Filters & Presets
                 </button>
               }
             />

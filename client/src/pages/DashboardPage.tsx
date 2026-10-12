@@ -50,7 +50,7 @@ export function DashboardPage() {
     >
       <div className="space-y-8">
         {/* Error banner */}
-        {error && <ErrorMessage error={error} onRetry={fetchDashboardData} />}
+        {error ? <ErrorMessage error={error} onRetry={fetchDashboardData} /> : null}
 
         {/* Top Summary Stat Cards */}
         {loading ? (

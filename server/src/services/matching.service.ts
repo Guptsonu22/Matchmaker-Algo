@@ -1,4 +1,6 @@
-import { ICustomer, IScoreSnapshot, IScoreDimensions } from '../models/Customer.model.js';
+import { ICustomer } from '../models/Customer.model.js';
+import { IScoreSnapshot, IScoreDimensions } from '../models/MatchEvent.model.js';
+export * from './matchmaking/index.js';
 
 const EDUCATION_RANKS: Record<string, number> = {
   HSC: 1,

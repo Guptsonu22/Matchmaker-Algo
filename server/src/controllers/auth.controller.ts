@@ -26,7 +26,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     }
 
     const token = jwt.sign({ id: user._id, role: user.role }, config.jwtSecret, {
-      expiresIn: config.jwtExpiresIn,
+      expiresIn: config.jwtExpiresIn as any,
     });
 
     res.status(200).json({

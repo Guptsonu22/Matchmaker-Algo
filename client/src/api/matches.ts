@@ -2,8 +2,8 @@ import apiClient from './client';
 import type { DashboardStats, MatchEvent, MatchSuggestion } from '@/types';
 
 export const matchesApi = {
-  getSuggestions: async (clientId: string): Promise<MatchSuggestion[]> => {
-    const { data } = await apiClient.get<MatchSuggestion[]>(`/api/matches/suggestions/${clientId}`);
+  getSuggestions: async (clientId: string, params?: { preset?: string; minScore?: number }): Promise<MatchSuggestion[]> => {
+    const { data } = await apiClient.get<MatchSuggestion[]>(`/api/matches/suggestions/${clientId}`, { params });
     return data;
   },
 

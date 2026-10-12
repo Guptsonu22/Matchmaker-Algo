@@ -5,8 +5,8 @@ interface SkeletonProps {
   rows?: number;
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx('skeleton', className)} />;
+export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={clsx('skeleton', className)} style={style} />;
 }
 
 export function SkeletonText({ rows = 3 }: SkeletonProps) {

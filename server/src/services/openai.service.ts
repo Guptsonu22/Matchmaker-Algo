@@ -1,4 +1,5 @@
-import { ICustomer, IScoreSnapshot } from '../models/Customer.model.js';
+import { ICustomer } from '../models/Customer.model.js';
+import { IScoreSnapshot } from '../models/MatchEvent.model.js';
 import { calculateAge } from './matching.service.js';
 import { config } from '../config/env.js';
 
